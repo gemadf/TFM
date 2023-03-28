@@ -22,7 +22,7 @@ def buscar_patrones(sequences):
         posicionPatterns = dict()
 
         #La primera pasada guarda los patrones de longuitud 1 con frecuencia minima, y las posiciones donde aparecen
-        guardar_patrones(protein, patterns, posicionPatterns)
+        guardar_patrones_len1(protein, patterns, posicionPatterns)
 
         # Comprueba si el diccionario con la posiciones de patrones NO esta vacío
         if bool(posicionPatterns):
@@ -60,7 +60,7 @@ def buscar_patrones(sequences):
        for key, value in all_patterns.items():
           print(value, key, file=archivo)
 
-def guardar_patrones(protein, patterns, posicionPatterns):
+def guardar_patrones_len1(protein, patterns, posicionPatterns):
     aux = set()
     auxPos = dict()
     for index, letter in enumerate(protein):
@@ -74,6 +74,19 @@ def guardar_patrones(protein, patterns, posicionPatterns):
             posicionPatterns[key] = posicionPatterns.get(key, []) + value
 
 
+def distance_levenshtein(pattern1, pattern2):
+  d=dict()
+  for i in range(len(pattern1)+1):
+     d[i]=dict()
+     d[i][0]=i
+  for i in range(len(pattern2)+1):
+     d[0][i] = i
+  for i in range(1, len(pattern1)+1):
+     for j in range(1, len(pattern2)+1):
+        d[i][j] = min(d[i][j-1]+1,
+                      d[i-1][j]+1,
+                      d[i-1][j-1]+(not pattern2[i-1] == pattern2[j-1]))
+  return d[len(pattern1)][len(pattern2)]
 
 if __name__ == "__main__":
     inicio = time.time()
