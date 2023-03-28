@@ -4,11 +4,11 @@ import pandas as pd
 import string
 import time
 import difflib
-
+from collections import defaultdict
 
 def readData():
     data = pd.read_excel("data_nervous_genes.xlsx")
-    sequences = data["protein_sequence"].head(100)
+    sequences = data["protein_sequence"].head(1000)
 
     return sequences
 
@@ -27,34 +27,30 @@ def buscar_patrones(sequences):
         # Comprueba si el diccionario con la posiciones de patrones NO esta vacío
         if bool(posicionPatterns):
             for pattern_length in range(2, protein_len + 1):
-                #print("1")
-                #Se crean nuevos aux en cada iteracion. Asi solo contiene los patrones de longuitud pattern_length
-                aux = set()
-                auxPos = dict(posicionPatterns)
+                #Si se intenta acceder a una clave que no existe se creara una lista vacia
+                auxPos = defaultdict(list)
                 for key, value in posicionPatterns.items():
-                    #print("2")
                     if len(key) == pattern_length - 1:
                         for position in value:
-                            #print("3")
                             if (protein_len < position + pattern_length):
                                 continue
                             sub_seq = protein[position:position + pattern_length]
-                            if sub_seq not in aux:
-                                aux.add(sub_seq)
-                            auxPos[sub_seq] = auxPos.get(sub_seq, []) + [position]
+                            #Si la ultima letra que es la nueva del patron ya esta min_freq, el patron es min freq tb
+                            ultima_letra = sub_seq[-1]
+                            pos_ultima_letra = position + pattern_length - 1
+                            if ultima_letra in patterns and pos_ultima_letra in posicionPatterns[ultima_letra]:
+                                auxPos[sub_seq].append(position)
 
-                for key, value in auxPos.items():
-                    #print("4")
-                    if len(value) >= min_frequence:
-                        #print("5")
-                        patterns.add(key)
-                        posicionPatterns[key] = posicionPatterns.get(key, []) + [value]
 
-                #Si no se encuentra ningun patron de longuitud pattern_length se sale del bucle. No hay mas patrones posible a encontrar
+                # Si no se encuentra ningun patron de longuitud pattern_length se sale del bucle. No hay mas patrones posible a encontrar
                 if not bool(auxPos):
                     break
-                #Se añaden los patrones encontrados a posicionPatterns
-                posicionPatterns.update(auxPos)
+
+                for seq, pos in auxPos.items():
+                    if len(pos) >= min_frequence:
+                        patterns.add(seq)
+                        posicionPatterns[seq] = posicionPatterns.get(seq, []) + pos
+
 
         #Ordenar de mayor a menor tamaño. Las subcadenas del mismo tamaño se ordenan por orden alfabetico
         list_ordered_patterns = sorted(patterns, key=lambda x: (-len(x), x))
@@ -62,7 +58,7 @@ def buscar_patrones(sequences):
 
     with open("prueba.txt", "w") as archivo:
        for key, value in all_patterns.items():
-          print(f"Protein sequence: {key}, patterns: {value}", file=archivo)
+          print(value, key, file=archivo)
 
 def guardar_patrones(protein, patterns, posicionPatterns):
     aux = set()
@@ -77,10 +73,12 @@ def guardar_patrones(protein, patterns, posicionPatterns):
             patterns.add(key)
             posicionPatterns[key] = posicionPatterns.get(key, []) + value
 
+
+
 if __name__ == "__main__":
     inicio = time.time()
-    #sequences = ['MSLWQPLVLVLLVLGCCFAAPRQRQSTLVLFPGDLRTNLTDRQLAEEYLYRYGYTRVAEMRGESKSLGPALLLLQKQLSLPETGELDSATLKAMRTPRCGVPDLGRFQTFEGDLKWHHHNITYWIQNYSEDLPRAVIDDAFARAFALWSAVTPLTFTRVYSRDADIVIQFGVAEHGDGYPFDGKDGLLAHAFPPGPGIQGDAHFDDDELWSLGKGVVVPTRFGNADGAACHFPFIFEGRSYSACTTDGRSDGLPWCSTTANYDTDDRFGFCPSERLYTQDGNADGKPCQFPFIFQGQSYSACTTDGRSDGYRWCATTANYDRDKLFGFCPTRADSTVMGGNSAGELCVFPFTFLGKEYSTCTSEGRGDGRLWCATTSNFDSDKKWGFCPDQGYSLFLVAAHEFGHALGLDHSSVPEALMYPMYRFTEGPPLHKDDVNGIRHLYGPRPEPEPRPPTTTTPQPTAPPTVCPTGPPTVHPSERPTAGPTGPPSAGPTGPPTAGPSTATTVPLSPVDDACNVNIFDAIAEIGNQLYLFKDGKYWRFSEGRGSRPQGPFLIADKWPALPRKLDSVFEERLSKKLFFFSGRQVWVYTGASVLGPRRLDKLGLGADVAQVTGALRSGRGKMLLFSGRRLWRFDVKAQMVDPRSASEVDRMFPGVPLDTHDVFQYREKAYFCQDRFYWRVSSRSELNQVDQVGYVTYDILQCPED']
-    #sequences = ['ELERKELEFDTNMDAVQMVITEAQKVDTRAKNAGVTIQDTLNTLDGLLHLMDQPLSVDEEGLVLLEQKLSRAKTQINSQLRPMMSELEERARQQR']
+    #sequences = ['MTILFLTMVISYFGCMKAAPMKEANIRGQGGLAYPGVRTHGTLESVNGPKAGSRGLTSLADTFEHVIEELLDEDQKVRPNEENNKDADLYTSRVMLSSQVPLEPPLLFLLEEYKNYLDAANMSMRVRRHSDPARRGELSVCDSISEWVTAADKKTAVDMSGGTVTVLEKVPVSKGQLKQYFYETKCNPMGYTKEGCRGIDKRHWNSQCRTTQSYVRALTMDSKKRIGWRFIRIDTSCVCTLTIKRGR']
+    #sequences = ['ABCABNABHABMABYAB']
     min_frequence = 5
     sequences = readData()
     buscar_patrones(sequences)
