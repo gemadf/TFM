@@ -4,10 +4,25 @@ import time
 import difflib
 from collections import defaultdict
 import Levenshtein
+import ast
 
 def readData():
     data = pd.read_excel("data_nervous_genes.xlsx")
-    sequences = data["protein_sequence"].head(100)
+    sequences = data["protein_sequence"].head(5)
+
+    """count_by_disease = data.groupby('disease_id').size().reset_index(name='count')
+    sorted_by_count = count_by_disease.sort_values('count', ascending=False)
+
+    print(sorted_by_count.head(5))
+
+    data = data.loc[data["disease_id"] == "C0002395"]
+
+    dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
+
+    data = data[~((data["disease_id"] == "C0002395") &
+                  (data["protein_id"].isin(dataB["protein_id"])) &
+                  (data["gene_id"].isin(dataB["gene_id"])))]
+    sequences = data["protein_sequence"]"""
 
     return sequences
 
@@ -30,11 +45,8 @@ def guardar_patrones_len1(sequences, pattern_freqMin):
             auxPos[letter] = auxPos.get(letter, []) + [index]
 
         for key, value in auxPos.items():
-            #if len(value) >= min_frequence:
             patterns.add(key)
             posicionPatterns[key] = posicionPatterns.get(key, []) + value
-
-
 
         all_patterns[protein] = posicionPatterns
 
@@ -44,7 +56,6 @@ def guardar_patrones_len1(sequences, pattern_freqMin):
         for pattern, positions in patterns.items():
             if pattern not in pattern_proteins:
                 pattern_proteins[pattern] = {}
-            #pattern_proteins[pattern].add(protein)
             if protein not in pattern_proteins[pattern]:
                 pattern_proteins[pattern][protein] = []
             pattern_proteins[pattern][protein].extend(positions)
@@ -56,37 +67,16 @@ def guardar_patrones_len1(sequences, pattern_freqMin):
 
     return pattern_freqMin, posicionPatterns, longuitud_max
 
-"""if ultima_letra in pattern_freqMin:
-    for proteinaa in pattern_freqMin[ultima_letra]:
-        if pos_ultima_letra in pattern_freqMin[ultima_letra][proteinaa]:
-            if sub_seq not in auxPos:
-                auxPos[sub_seq] = {}
-            if proteinaa not in auxPos[sub_seq]:
-                auxPos[sub_seq][proteinaa] = []
-            auxPos[sub_seq][proteinaa].append(position)
-    if len(auxPos[sub_seq]) < min_ocurrence:
-        del auxPos[sub_seq]"""
-
 def buscar_patrones_cada_proteina(sequences):
     pattern_freqMin = {}
     pattern_freqMin, posicionPatterns, longuitud_max = guardar_patrones_len1(sequences, pattern_freqMin)
 
-    #freq_aux = pattern_freqMin
-
-    #for protein in sequences:
-    #    protein_len = len(protein)
-        #patterns = set()  # Guarda solo los patrones que aparecen en la secuencia
-        #posicionPatterns = dict()  # Guarda los patrones que aparecen en la secuencia con sus posiciones asociadas
-
-        # Comprueba si el diccionario con la posiciones de patrones NO esta vacío
     if bool(pattern_freqMin):
         for pattern_length in range(2, longuitud_max + 1):
-        #for pattern_length in range(2, 6):
             # Si se intenta acceder a una clave que no existe se creara una lista vacia
             auxPos = {}
             sub_seqs = []
             for pattern, proteins in pattern_freqMin.items():
-
                 if len(pattern) == pattern_length - 1:
                     for prot, positions in proteins.items():
                         protein_len = len(prot)
@@ -97,15 +87,12 @@ def buscar_patrones_cada_proteina(sequences):
                                 continue
                             sub_seq = prot[position:position + pattern_length]
 
-
                             if sub_seq in pattern_freqMin:
                                 continue
-                            # Si la ultima letra que es la nueva del patron ya esta min_freq, el patron es min freq tb
+                            # Si la ultima letra que es la nueva del patron ya esta min_freq, el patron es posible
+                            # min freq tb
                             ultima_letra = sub_seq[-1]
                             pos_ultima_letra = position + pattern_length - 1
-
-
-
                             if ultima_letra in pattern_freqMin and pos_ultima_letra in pattern_freqMin[ultima_letra][prot]:
                                 if sub_seq not in auxPos:
                                     auxPos[sub_seq] = {}
@@ -116,7 +103,6 @@ def buscar_patrones_cada_proteina(sequences):
                                     sub_seqs.append(sub_seq)
 
                 sub_seqs_copy = sub_seqs.copy()
-
                 for p in sub_seqs_copy:
                     if len(auxPos[p]) < min_ocurrence:
                         del auxPos[p]
@@ -127,7 +113,6 @@ def buscar_patrones_cada_proteina(sequences):
             # Si no se encuentra ningun patron de longuitud pattern_length se sale del bucle. No hay mas patrones posible a encontrar
             if not bool(auxPos):
                 break
-
 
             for pattern, proteins in auxPos.items():
                 for prot, pos in proteins.items():
@@ -142,12 +127,58 @@ def buscar_patrones_cada_proteina(sequences):
         # Ordenar de mayor a menor tamaño. Las subcadenas del mismo tamaño se ordenan por orden alfabetico
         dict_ordered_patterns = dict(sorted(pattern_freqMin.items(), key=lambda x: (-len(x[0]), x[0])))
 
-        with open("prueba.txt", "w") as archivo:
-
-            for key, value in dict_ordered_patterns.items():
-                print(key, value, file=archivo)
+        df = pd.DataFrame(dict_ordered_patterns.items(), columns=['pattern', 'proteins'])
+        df.to_csv('prueba.csv', index=False)
 
     return pattern_freqMin
+
+
+def remplazar_sequence_for_ID():
+    df_a = pd.read_csv('prueba.csv')
+    df_b = pd.read_excel("data_nervous_genes.xlsx")
+    proteinas_dict = dict(df_b[['protein_sequence', 'protein_id']].values)
+
+    for i, row in df_a.iterrows():
+        proteins_str = row['proteins']
+        proteins_dict = ast.literal_eval(proteins_str)
+        new_proteins_dict = {}
+        for protein, positions in proteins_dict.items():
+            if protein in proteinas_dict:
+                new_protein = proteinas_dict[protein]
+                new_proteins_dict[new_protein] = positions
+            else:
+                new_proteins_dict[protein] = positions
+        df_a.at[i, 'proteins'] = str(new_proteins_dict)
+
+    # Guardar el DataFrame actualizado en un archivo CSV
+    df_a.to_csv('results.csv', index=False)
+
+
+def patrones_similares(sequences):
+    similar_patterns = {}  # Guarda los patrones similares relacionados con el patron similar del que parten
+    pattern_freqMin = {}  # Guarda para cada patron similar las proteinas en las que se ha encontrado
+
+
+    for pattern1 in sequences:
+        for pattern2 in sequences:
+            if pattern1 != pattern2:
+                # Calcular distancia de Levenshtein entre patrones
+                similarity = Levenshtein.distance(pattern1, pattern2) / max(len(pattern1), len(pattern2))
+                # Para admitir una inserción o una delección el valor debe ser 1, y dividimos para normalizar y
+                # adaptarlo a las distintas longuitudes
+                umbral = 1 / max(len(pattern1), len(pattern2))
+                #print("Patron 1: ", pattern1, " Patron 2: ", pattern2, " Similariad: ", similarity)
+                #print(umbral)
+                if similarity <= umbral:
+                    if pattern1 not in similar_patterns:
+                        similar_patterns[pattern1] = set()
+                    if pattern2 not in similar_patterns:
+                        similar_patterns[pattern2] = set()
+                    similar_patterns[pattern1].add(pattern2)
+                    similar_patterns[pattern2].add(pattern1)
+
+    print(similar_patterns)
+
 
 
 if __name__ == "__main__":
@@ -159,8 +190,10 @@ if __name__ == "__main__":
     min_ocurrence = 5
     sequences = readData()
     pattern_freqMin = buscar_patrones_cada_proteina(sequences)
+    #remplazar_sequence_for_ID()
 
-
+    #lista_similares = ['ABCDE', 'ABCEE', 'ABCDF', 'A', 'ABCE', 'ABCDEF']
+    #patrones_similares(sequences)
     fin = time.time()
 
     tiempo_total = fin - inicio
