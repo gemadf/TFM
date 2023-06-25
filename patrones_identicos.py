@@ -1,6 +1,7 @@
 import pandas as pd
 import time
 import ast
+import csv
 
 def readData():
     data = pd.read_excel("data_nervous_genes.xlsx")
@@ -20,7 +21,9 @@ def readData():
                   (data["gene_id"].isin(dataB["gene_id"])))]
     sequences = data["protein_sequence"]
 
-    return sequences
+    num_filas = sequences.shape[0]
+
+    return sequences, num_filas
 
 def guardar_patrones_len1(sequences, pattern_freqMin):
     all_patterns = dict()
@@ -121,37 +124,48 @@ def buscar_patrones_identicos(sequences):
         dict_ordered_patterns = dict(sorted(pattern_freqMin.items(), key=lambda x: (-len(x[0]), x[0])))
 
         df = pd.DataFrame(dict_ordered_patterns.items(), columns=['pattern', 'proteins'])
+
         df.to_csv('prueba.csv', index=False)
 
     return pattern_freqMin
 
-def remplazar_sequence_for_ID():
-    df_a = pd.read_csv('prueba.csv')
+def remplazar_sequence_for_ID(pattern_freqMin):
     df_b = pd.read_excel("data_nervous_genes.xlsx")
+
+    output = []
+
+    for key, value in pattern_freqMin.items():
+        for proteina, posiciones in value.items():
+            output.append([key, proteina, posiciones])
+
+    output = [sublista for sublista in output if len(sublista[0]) != 1]
+
+    # Ordenar de mayor a menor tamaño. Las subcadenas del mismo tamaño se ordenan por orden alfabetico
+    output_ordered = sorted(output, key=lambda x: (-len(x[0]), x[0]))
+
+
     proteinas_dict = dict(df_b[['protein_sequence', 'protein_id']].values)
 
-    for i, row in df_a.iterrows():
-        proteins_str = row['proteins']
-        proteins_dict = ast.literal_eval(proteins_str)
-        new_proteins_dict = {}
-        for protein, positions in proteins_dict.items():
-            if protein in proteinas_dict:
-                new_protein = proteinas_dict[protein]
-                new_proteins_dict[new_protein] = positions
-            else:
-                new_proteins_dict[protein] = positions
-        df_a.at[i, 'proteins'] = str(new_proteins_dict)
+    for item in output_ordered:
+        protein_sequence = item[1]
+        if protein_sequence in proteinas_dict:
+            item[1] = proteinas_dict[protein_sequence]
+
+    df_a = pd.DataFrame(output_ordered, columns=['Patron', 'Proteina', 'Posiciones'])
 
     # Guardar el DataFrame actualizado en un archivo CSV
-    df_a.to_csv('C0002395_Disease_patronesIdenticos_ocurrence10.csv', index=False)
+    df_a.to_csv('C0002395_Disease_patronesIdenticos_ocurrence3%.csv', index=False)
 
 if __name__ == "__main__":
     inicio = time.time()
     pattern_freqMin = dict()
-    min_ocurrence = 10
-    sequences = readData()
+
+    sequences, num_filas = readData()
+
+    min_ocurrence = num_filas * 0.03
+
     pattern_freqMin = buscar_patrones_identicos(sequences)
-    remplazar_sequence_for_ID()
+    remplazar_sequence_for_ID(pattern_freqMin)
 
     fin = time.time()
 
