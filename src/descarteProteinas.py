@@ -19,97 +19,73 @@ def readData():
     data = data[~((data["disease_id"] == "C0002395") &
                   (data["protein_id"].isin(dataB["protein_id"])) &
                   (data["gene_id"].isin(dataB["gene_id"])))]
-    sequences = data["protein_sequence"].head(200)
+    sequences = data["protein_sequence"]
 
     return sequences
 
-def similitudProteinas(sequences):
-    output = []
-    processed_combinations = set()
 
-    for row1 in sequences:
-        for row2 in sequences:
-            if row1 != row2:
-                combination = frozenset([row1, row2])
-                if combination not in processed_combinations:
-                    similarity = Levenshtein.distance(row1, row2) / max(len(row1), len(row2))
-                    output.append([row1, row2, similarity*100])
-                    processed_combinations.add(combination)
-    return output
+
+def similarity_percentage(pattern1, pattern2):
+    return Levenshtein.distance(pattern1, pattern2) / max(len(pattern1), len(pattern2))
+
+def descarte(data):
+
+    data = data.tolist()
+    # Crear una matriz de similitud utilizando el porcentaje de similitud
+    num_samples = len(data)
+    similarity_matrix = np.zeros((num_samples, num_samples))
+    for i in range(num_samples):
+        for j in range(num_samples):
+            similarity_matrix[i, j] = similarity_percentage(data[i], data[j])
+
+    # Definir los parámetros del algoritmo DBSCAN
+    epsilon = 0.05  # Radio de vecindad (ajustar según tus necesidades)
+    min_samples = 2  # Número mínimo de puntos para formar un cluster
+
+    # Crear una instancia del algoritmo DBSCAN con la métrica de similitud
+    dbscan = DBSCAN(eps=epsilon, min_samples=min_samples, metric='precomputed')
+
+    # Ejecutar el algoritmo DBSCAN en la matriz de similitud
+    labels = dbscan.fit_predict(similarity_matrix)
+
+    data = remplazar_sequence_for_ID(data)
+
+    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+
+    print(f"Número de clusters: {n_clusters}")
+
+    # Crear un diccionario para almacenar los clusters
+    clusters = {}
+    for i, label in enumerate(labels):
+        if label not in clusters:
+            clusters[label] = []
+        clusters[label].append(i)
+
+    # Imprimir los resultados del clustering
+    for label, indices in clusters.items():
+        print(f"Cluster: {label}")
+        for i in indices:
+            print(f"Datos: {data[i]}")
+
+        # Filtrar las proteínas por similitud > 90%
+        filtered_indices = [i for i in indices if similarity_percentage(data[i], data[i]) > 0.9]
+
+        # Imprimir solo las proteínas que superan el umbral de similitud
+        print("Proteínas con similitud > 90%:")
+        for i in filtered_indices:
+            print(f"Datos: {data[i]}")
 
 def remplazar_sequence_for_ID(output):
     df_b = pd.read_excel("data_nervous_genes.xlsx")
 
-    # Ordenar de mayor a menor tamaño. Las subcadenas del mismo tamaño se ordenan por orden alfabetico
-    output_ordered = sorted(output, key=lambda x: (-len(x[0]), x[0]))
-
     proteinas_dict = dict(df_b[['protein_sequence', 'protein_id']].values)
 
-    for item in output_ordered:
-        protein_sequence1 = item[0]
-        protein_sequence2 = item[1]
-        if protein_sequence1 in proteinas_dict and protein_sequence2 in proteinas_dict:
-            item[0] = proteinas_dict[protein_sequence1]
-            item[1] = proteinas_dict[protein_sequence2]
+    for i in range(len(output)):
+        protein_sequence = output[i]
+        if protein_sequence in proteinas_dict:
+            output[i] = proteinas_dict[protein_sequence]
 
-
-
-    df_a = pd.DataFrame(output_ordered, columns=['Proteina1', 'Proteina2', 'Similaridad'])
-    # Guardar el DataFrame actualizado en un archivo CSV
-    df_a.to_csv('DistanciaProteinas_C0002395_20%.csv', index=False)
-
-    return df_a
-
-
-def descarte(data, threshold):
-    filtered_data = data[data['Similaridad'] >= threshold]
-
-    X = filtered_data['Similaridad'].values.reshape(-1, 1)
-
-    # Normaliza los datos
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-
-    # Realiza el clustering de densidad con DBSCAN
-    dbscan = DBSCAN(eps=0.01, min_samples=2)  # Ajusta los parámetros según tus necesidades
-    labels = dbscan.fit_predict(X)
-
-    # Agrega las etiquetas de los clusters al DataFrame original
-    filtered_data.loc[:, 'Cluster'] = labels
-
-    filtered_data = filtered_data.reset_index(drop=True)
-
-    central_proteins = []
-    for cluster_label in set(labels):
-        cluster_indices = np.where(labels == cluster_label)[0]
-        central_index = cluster_indices[np.argmax(X[cluster_indices])]
-        central_protein = filtered_data.loc[central_index, 'Proteina1']
-        central_proteins.append(central_protein)
-
-    # Filtrar el DataFrame original para obtener los elementos centrales de cada cluster
-    central_data = data[data['Proteina1'].isin(central_proteins)]
-
-    # Filtrar el DataFrame original para obtener las filas correspondientes al cluster -1
-    cluster_minus1 = filtered_data[filtered_data['Cluster'] == -1]
-
-    # Filtrar el DataFrame original para obtener las filas con similitud inferior al umbral
-    below_threshold = data[data['Similaridad'] < threshold]
-
-    # Concatenar las filas del cluster -1 y las filas con similitud inferior al umbral
-    final_data = pd.concat([central_data, cluster_minus1, below_threshold])
-    final_data = final_data.sort_index()
-    final_data = final_data.drop_duplicates()
-
-    # Imprimir los resultados
-    print("Datos finales:")
-    print(final_data)
-
-    #central data tiene las proteinas centrales y los valoreles atípicos que no se encuandran en ningun cluster
-    return central_data
-
-def concatenarResultadosCluster_datosOriginales(central_data, df, threshold):
-    df = df[df['Similaridad'] < threshold]
-
+    return output
 
 if __name__ == "__main__":
     inicio = time.time()
@@ -117,10 +93,9 @@ if __name__ == "__main__":
     threshold = 90
 
     data = readData()
-    output = similitudProteinas(data)
-    df = remplazar_sequence_for_ID(output)
-    central_data = descarte(df, threshold)
-    concatenarResultadosCluster_datosOriginales(central_data, df, threshold)
+    #df = remplazar_sequence_for_ID(output)
+    #central_data = descarte(df, threshold)
+    central_data = descarte(data)
 
     fin = time.time()
 
