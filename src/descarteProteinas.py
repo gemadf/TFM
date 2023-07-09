@@ -4,6 +4,10 @@ import time
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
+from pyclustering.cluster.dbscan import dbscan
+from pyclustering.utils import timedcall
+from Levenshtein import distance
 
 def readData():
     data = pd.read_excel("data_nervous_genes.xlsx")
@@ -23,57 +27,48 @@ def readData():
 
     return sequences
 
-
-
-def similarity_percentage(pattern1, pattern2):
+def levenshtein_similarity(pattern1, pattern2):
     return Levenshtein.distance(pattern1, pattern2) / max(len(pattern1), len(pattern2))
 
 def descarte(data):
-
+    # Datos de ejemplo
     data = data.tolist()
-    # Crear una matriz de similitud utilizando el porcentaje de similitud
-    num_samples = len(data)
-    similarity_matrix = np.zeros((num_samples, num_samples))
-    for i in range(num_samples):
-        for j in range(num_samples):
-            similarity_matrix[i, j] = similarity_percentage(data[i], data[j])
 
-    # Definir los parámetros del algoritmo DBSCAN
-    epsilon = 0.05  # Radio de vecindad (ajustar según tus necesidades)
-    min_samples = 2  # Número mínimo de puntos para formar un cluster
+    # Crear matriz de similitud
+    num_points = len(data)
+    similarity_matrix = [[0] * num_points for _ in range(num_points)]
+    for i in range(num_points):
+        for j in range(num_points):
+            similarity_matrix[i][j] = levenshtein_similarity(data[i], data[j])
 
-    # Crear una instancia del algoritmo DBSCAN con la métrica de similitud
-    dbscan = DBSCAN(eps=epsilon, min_samples=min_samples, metric='precomputed')
+    # Parámetros del algoritmo DBSCAN
+    eps = 0.02  # Umbral de similitud
+    min_samples = 2  # Número mínimo de muestras para formar un cluster
 
-    # Ejecutar el algoritmo DBSCAN en la matriz de similitud
-    labels = dbscan.fit_predict(similarity_matrix)
+    # Ejecutar el algoritmo DBSCAN
+    dbscan_instance = dbscan(similarity_matrix, eps, min_samples, metric='precomputed')
+    dbscan_instance.process()
+    clusters = dbscan_instance.get_clusters()
+
+    # Aplicar umbral de similitud del 90%
+    threshold = 0.9
+    filtered_clusters = []
+    for cluster_id, cluster in enumerate(clusters):
+        filtered_cluster = []
+        for point_index in cluster:
+            similarity_percentage = 1 - (similarity_matrix[point_index][point_index] / eps)
+            if similarity_percentage >= threshold:
+                filtered_cluster.append(point_index)
+        if filtered_cluster:
+            filtered_clusters.append(filtered_cluster)
 
     data = remplazar_sequence_for_ID(data)
 
-    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+    # Imprimir los resultados
+    for cluster_id, cluster in enumerate(filtered_clusters):
+        cluster_data = [data[i] for i in cluster]
+        print(f'Cluster {cluster_id}: {", ".join(cluster_data)}')
 
-    print(f"Número de clusters: {n_clusters}")
-
-    # Crear un diccionario para almacenar los clusters
-    clusters = {}
-    for i, label in enumerate(labels):
-        if label not in clusters:
-            clusters[label] = []
-        clusters[label].append(i)
-
-    # Imprimir los resultados del clustering
-    for label, indices in clusters.items():
-        print(f"Cluster: {label}")
-        for i in indices:
-            print(f"Datos: {data[i]}")
-
-        # Filtrar las proteínas por similitud > 90%
-        filtered_indices = [i for i in indices if similarity_percentage(data[i], data[i]) > 0.9]
-
-        # Imprimir solo las proteínas que superan el umbral de similitud
-        print("Proteínas con similitud > 90%:")
-        for i in filtered_indices:
-            print(f"Datos: {data[i]}")
 
 def remplazar_sequence_for_ID(output):
     df_b = pd.read_excel("data_nervous_genes.xlsx")
@@ -90,12 +85,10 @@ def remplazar_sequence_for_ID(output):
 if __name__ == "__main__":
     inicio = time.time()
     pattern_freqMin = dict()
-    threshold = 90
+    threshold = 0.9
 
     data = readData()
-    #df = remplazar_sequence_for_ID(output)
-    #central_data = descarte(df, threshold)
-    central_data = descarte(data)
+    descarte(data)
 
     fin = time.time()
 
