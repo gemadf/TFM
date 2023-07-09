@@ -33,7 +33,7 @@ def similitudProteinas(sequences):
 
 def metrica_distanciaProteinas():
     # Leer los archivos CSV
-    data = pd.read_csv("C0002395_Disease_patronesIdenticos_ocurrence20%_SinDescarte.csv")
+    data = pd.read_csv("C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv")
     df_b = pd.read_csv("C0002395Disease_%Similitud.csv")
 
     # Crear un diccionario de similaridades
@@ -60,7 +60,7 @@ def metrica_distanciaProteinas():
     df = pd.DataFrame(output, columns=['Patron', 'Proteina1', 'Proteina2', 'Similitud'])
 
     # Guardar el DataFrame en un archivo CSV
-    df.to_csv('Metrica_distanciaProteinasMismoPatron_C0002395_Disease_patronesIdenticos_ocurrence20%_SinDescarte.csv',
+    df.to_csv('Metrica_distanciaProteinasMismoPatron_C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv',
               index=False)
 
     """data = pd.read_csv("C0002395_Disease_patronesIdenticos_ocurrence20%_SinDescarte.csv").head(100)
@@ -89,7 +89,7 @@ def metrica_distanciaProteinas():
 def patronesComun():
     # Leer el archivo CSV y cargar los datos en una lista de diccionarios
     registros = []
-    with open("C0002395_Disease_patronesIdenticos_ocurrence10%_SinDescarte.csv", 'r') as file:
+    with open("C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv", 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             registros.append(row)
@@ -140,7 +140,7 @@ def patronesComun():
                                proteinas_dict[(proteina1, proteina2)]])
 
     df = pd.DataFrame(output, columns=['Patrones', 'Proteina1', 'Proteina2', 'Similitud'])
-    df.to_csv('Metrica_patronesComunes10%_C0002395_Disease_patronesIdenticos_ocurrence10%_SinDescarte.csv',
+    df.to_csv('Metrica_patronesComunes10%_C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv',
               index=False)
 
 def remplazar_sequence_for_ID(output):
@@ -173,7 +173,8 @@ if __name__ == "__main__":
     #sequences = readData()
     #similitud = similitudProteinas(sequences)
     #remplazar_sequence_for_ID(similitud)
-    patronesComun()
+    #patronesComun()
+    metrica_distanciaProteinas()
     """output = patronesComun(data)
     remplazar_sequence_for_ID(output)"""
 

@@ -42,7 +42,7 @@ def descarte(data):
             similarity_matrix[i][j] = levenshtein_similarity(data[i], data[j])
 
     # Parámetros del algoritmo DBSCAN
-    eps = 0.02  # Umbral de similitud
+    eps = 0.15  # Umbral de similitud
     min_samples = 2  # Número mínimo de muestras para formar un cluster
 
     # Ejecutar el algoritmo DBSCAN
@@ -53,12 +53,30 @@ def descarte(data):
     # Aplicar umbral de similitud del 90%
     threshold = 0.9
     filtered_clusters = []
+    discarded_data = []
+
     for cluster_id, cluster in enumerate(clusters):
         filtered_cluster = []
+        min_avg_distance = float('inf')
+        central_point_index = None
+
+        # Calcular la distancia promedio para cada punto del cluster
         for point_index in cluster:
-            similarity_percentage = 1 - (similarity_matrix[point_index][point_index] / eps)
-            if similarity_percentage >= threshold:
-                filtered_cluster.append(point_index)
+            total_distance = 0
+            for other_index in cluster:
+                total_distance += similarity_matrix[point_index][other_index]
+            avg_distance = total_distance / len(cluster)
+            if avg_distance < min_avg_distance:
+                min_avg_distance = avg_distance
+                central_point_index = point_index
+
+        # Verificar si el punto central supera el umbral
+        similarity_percentage = 1 - (min_avg_distance / eps)
+        if similarity_percentage >= threshold:
+            filtered_cluster.append(central_point_index)
+        else:
+            discarded_data.extend([data[i] for i in cluster if i != central_point_index])
+
         if filtered_cluster:
             filtered_clusters.append(filtered_cluster)
 
@@ -68,6 +86,12 @@ def descarte(data):
     for cluster_id, cluster in enumerate(filtered_clusters):
         cluster_data = [data[i] for i in cluster]
         print(f'Cluster {cluster_id}: {", ".join(cluster_data)}')
+
+    discarded_data = remplazar_sequence_for_ID(discarded_data)
+    # Guardar los datos descartados en un archivo CSV utilizando Pandas
+    if discarded_data:
+        df = pd.DataFrame({'ProteinasDescartadas': discarded_data})
+        df.to_csv('C0002396Disease_proteinasDescartadas_umbral90%.csv', index=False)
 
 
 def remplazar_sequence_for_ID(output):
