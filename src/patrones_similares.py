@@ -21,11 +21,9 @@ def patrones_similares_prueba(pattern_freqMin):
             len_pattern2 = len(pattern2)
 
             # Calcular distancia de Levenshtein entre patrones
-            # Sustitución debe tener valor 1
             similarity = Levenshtein.distance(pattern1, pattern2) / max(len(pattern1), len(pattern2))
-
             # Para admitir una inserción, una delección o una sustitución el valor debe ser 1, y dividimos para normalizar y
-            # adaptarlo a las distintas longuitudes
+            # adaptarlo a las distintas longitudes
             max_length = max(len_pattern1, len_pattern2)
             operaciones_max = math.ceil(0.1 * max_length)
             umbral = operaciones_max / max_length

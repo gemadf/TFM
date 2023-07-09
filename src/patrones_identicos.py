@@ -2,10 +2,15 @@ import pandas as pd
 import time
 import ast
 import csv
+import math
+from interfazGrafica import interfaz
 
 def readData():
     data = pd.read_excel("data_nervous_genes.xlsx")
-    #sequences = data["protein_sequence"].head(5)
+    dataC = pd.read_csv("C0002396Disease_proteinasDescartadas_umbral90%.csv")
+
+    #Descarte de proteinas
+    data = data[~data['protein_id'].isin(dataC['ProteinasDescartadas'])]
 
     count_by_disease = data.groupby('disease_id').size().reset_index(name='count')
     sorted_by_count = count_by_disease.sort_values('count', ascending=False)
@@ -16,9 +21,10 @@ def readData():
 
     dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
 
+    #Eliminar las proteinas target
     data = data[~((data["disease_id"] == "C0002395") &
-                  (data["protein_id"].isin(dataB["protein_id"])) &
-                  (data["gene_id"].isin(dataB["gene_id"])))]
+                  (data["protein_id"].isin(dataB["protein_id"])))]
+
     sequences = data["protein_sequence"]
 
     num_filas = sequences.shape[0]
@@ -27,13 +33,13 @@ def readData():
 
 def guardar_patrones_len1(sequences, pattern_freqMin):
     all_patterns = dict()
-    longuitud_max = 0
+    longitud_max = 0
     # Each pattern associated to the proteins the pattern is in
     pattern_proteins = {}
     for protein in sequences:
-        longuitud = len(protein)
-        if longuitud > longuitud_max:
-            longuitud_max = longuitud
+        longitud = len(protein)
+        if longitud > longitud_max:
+            longitud_max = longitud
 
         all_patterns[protein] = []
         # En cada iteración guarda los patrones que aparecen en la secuencia con sus posiciones asociadas a la proteina
@@ -59,14 +65,14 @@ def guardar_patrones_len1(sequences, pattern_freqMin):
 
     df = pd.DataFrame(pattern_freqMin.items(), columns=['pattern', 'proteins'])
     df.to_csv('prueba2.csv', index=False)
-    return pattern_freqMin, posicionPatterns, longuitud_max
+    return pattern_freqMin, posicionPatterns, longitud_max
 
 def buscar_patrones_identicos(sequences):
     pattern_freqMin = {}
-    pattern_freqMin, posicionPatterns, longuitud_max = guardar_patrones_len1(sequences, pattern_freqMin)
+    pattern_freqMin, posicionPatterns, longitud_max = guardar_patrones_len1(sequences, pattern_freqMin)
 
     if bool(pattern_freqMin):
-        for pattern_length in range(2, longuitud_max + 1):
+        for pattern_length in range(2, longitud_max + 1):
             # Si se intenta acceder a una clave que no existe se creara una lista vacia
             auxPos = {}
             sub_seqs = []
@@ -101,7 +107,7 @@ def buscar_patrones_identicos(sequences):
                         del auxPos[p]
                         sub_seqs.remove(p)
 
-            # Si no se encuentra ningun patron de longuitud pattern_length se sale del bucle. No hay mas patrones posible a encontrar
+            # Si no se encuentra ningun patron de longitud pattern_length se sale del bucle. No hay mas patrones posible a encontrar
             if not bool(auxPos):
                 break
 
@@ -154,18 +160,22 @@ def remplazar_sequence_for_ID(pattern_freqMin):
     df_a = pd.DataFrame(output_ordered, columns=['Patron', 'Proteina', 'Posiciones'])
 
     # Guardar el DataFrame actualizado en un archivo CSV
-    df_a.to_csv('C0002395_Disease_patronesIdenticos_ocurrence3%.csv', index=False)
+    df_a.to_csv('C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv', index=False)
 
 if __name__ == "__main__":
     inicio = time.time()
+    #datosInterfaz = interfaz()
+    #print(datosInterfaz)
     pattern_freqMin = dict()
 
     sequences, num_filas = readData()
 
-    min_ocurrence = num_filas * 0.03
+    min_ocurrence = math.floor(num_filas * 0.2)
 
     pattern_freqMin = buscar_patrones_identicos(sequences)
     remplazar_sequence_for_ID(pattern_freqMin)
+    datosInterfaz = dict()
+
 
     fin = time.time()
 

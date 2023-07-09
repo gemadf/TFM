@@ -31,13 +31,13 @@ def readData():
 
 def guardar_patrones_len1(sequences, pattern_freqMin):
     all_patterns = dict()
-    longuitud_max = 0
+    ud_max = 0
     # Each pattern associated to the proteins the pattern is in
     pattern_proteins = {}
     for protein in sequences:
-        longuitud = len(protein)
-        if longuitud > longuitud_max:
-            longuitud_max = longuitud
+        longitud = len(protein)
+        if longitud > longitud_max:
+            longitud_max = longitud
 
         all_patterns[protein] = []
         # En cada iteración guarda los patrones que aparecen en la secuencia con sus posiciones asociadas a la proteina
@@ -63,14 +63,14 @@ def guardar_patrones_len1(sequences, pattern_freqMin):
 
     df = pd.DataFrame(pattern_freqMin.items(), columns=['pattern', 'proteins'])
     df.to_csv('prueba2.csv', index=False)
-    return pattern_freqMin, posicionPatterns, longuitud_max
+    return pattern_freqMin, posicionPatterns, longitud_max
 
 def buscar_patrones_cada_proteina(sequences):
     pattern_freqMin = {}
-    pattern_freqMin, posicionPatterns, longuitud_max = guardar_patrones_len1(sequences, pattern_freqMin)
+    pattern_freqMin, posicionPatterns, longitud_max = guardar_patrones_len1(sequences, pattern_freqMin)
 
     if bool(pattern_freqMin):
-        for pattern_length in range(2, longuitud_max + 1):
+        for pattern_length in range(2, longitud_max + 1):
             # Si se intenta acceder a una clave que no existe se creara una lista vacia
             auxPos = {}
             sub_seqs = []
@@ -105,7 +105,7 @@ def buscar_patrones_cada_proteina(sequences):
                         del auxPos[p]
                         sub_seqs.remove(p)
 
-            # Si no se encuentra ningun patron de longuitud pattern_length se sale del bucle. No hay mas patrones posible a encontrar
+            # Si no se encuentra ningun patron de longitud pattern_length se sale del bucle. No hay mas patrones posible a encontrar
             if not bool(auxPos):
                 break
 
@@ -134,7 +134,7 @@ def buscar_patrones_cada_proteina(sequences):
 
 
 def remplazar_sequence_for_ID():
-    df_a = pd.read_csv('prueba.csv')
+    df_a = pd.read_csv('../prueba.csv')
     df_b = pd.read_excel("data_nervous_genes.xlsx")
     proteinas_dict = dict(df_b[['protein_sequence', 'protein_id']].values)
 
@@ -176,7 +176,7 @@ def patrones_similares(pattern_freqMin):
             similarity = Levenshtein.distance(pattern1, pattern2) / max(len(pattern1), len(pattern2))
 
             # Para admitir una inserción, una delección o una sustitución el valor debe ser 1, y dividimos para normalizar y
-            # adaptarlo a las distintas longuitudes
+            # adaptarlo a las distintas longitudes
             max_length = max(len_pattern1, len_pattern2)
             operaciones_max = math.ceil(0.1 * max_length)
             umbral = operaciones_max / max_length
