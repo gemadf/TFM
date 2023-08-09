@@ -4,26 +4,26 @@ import ast
 import csv
 import math
 from interfazGrafica import interfaz
+from descarteProteinas import ejecutar
+import metricas
+from graficas import grafica
 
-def readData():
-    data = pd.read_excel("data_nervous_genes.xlsx")
-    dataC = pd.read_csv("C0002396Disease_proteinasDescartadas_umbral90%.csv")
+def readData(archivoEntrada, enfermedad, archivoTarget):
+    data = pd.read_excel(archivoEntrada)
+    dataC = pd.read_csv("resultados/proteinasDescartadas.csv")
 
     #Descarte de proteinas
     data = data[~data['protein_id'].isin(dataC['ProteinasDescartadas'])]
 
-    count_by_disease = data.groupby('disease_id').size().reset_index(name='count')
-    sorted_by_count = count_by_disease.sort_values('count', ascending=False)
+    # "C0002395"
+    if(enfermedad != ''):
+        data = data.loc[data["disease_id"] == enfermedad]
+        dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
 
-    #print(sorted_by_count.head(5))
-
-    data = data.loc[data["disease_id"] == "C0002395"]
-
-    dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
-
-    #Eliminar las proteinas target
-    data = data[~((data["disease_id"] == "C0002395") &
-                  (data["protein_id"].isin(dataB["protein_id"])))]
+    if(archivoTarget != ''):
+        #Eliminar las proteinas target
+        data = data[~((data["disease_id"] == enfermedad) &
+                      (data["protein_id"].isin(dataB["protein_id"])))]
 
     sequences = data["protein_sequence"]
 
@@ -160,21 +160,40 @@ def remplazar_sequence_for_ID(pattern_freqMin):
     df_a = pd.DataFrame(output_ordered, columns=['Patron', 'Proteina', 'Posiciones'])
 
     # Guardar el DataFrame actualizado en un archivo CSV
-    df_a.to_csv('C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv', index=False)
+    df_a.to_csv('resultados/patronesIdenticos.csv', index=False)
 
 if __name__ == "__main__":
     inicio = time.time()
-    #datosInterfaz = interfaz()
-    #print(datosInterfaz)
+
+    datosInterfaz = interfaz()
+    print(datosInterfaz)
+
+    archivoEntrada = datosInterfaz["NombreArchivoEntrada"]
+    enfermedad = datosInterfaz["CodigoEnfermedad"]
+    archivoTarget = datosInterfaz["NombreArchivoTarget"]
+    similitud = float(datosInterfaz["Similitud"])
+
+    ejecutar(archivoEntrada, enfermedad, similitud)
     pattern_freqMin = dict()
 
-    sequences, num_filas = readData()
+    sequences, num_filas = readData(archivoEntrada, enfermedad, archivoTarget)
 
-    min_ocurrence = math.floor(num_filas * 0.2)
+    min_ocurrence = math.floor(num_filas * float(datosInterfaz["OcurrenciaMin"]))
 
     pattern_freqMin = buscar_patrones_identicos(sequences)
     remplazar_sequence_for_ID(pattern_freqMin)
     datosInterfaz = dict()
+
+    metricas.metrica_distanciaProteinas()
+    archivo = 'resultados/Metrica_distanciaProteinasMismoPatron.csv'
+    nombreOutput = 'resultados/Figura_DistanciaProteinasMismoPatron'
+    grafica(archivo, nombreOutput)
+
+
+    metricas.patronesComun()
+    archivo = 'resultados/Metrica_patronesComunes.csv'
+    nombreOutput = 'resultados/Figura_distanciaProteinasPatronesComunes'
+    grafica(archivo, nombreOutput)
 
 
     fin = time.time()

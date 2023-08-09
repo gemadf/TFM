@@ -3,23 +3,6 @@ import pandas as pd
 import Levenshtein
 import csv
 
-def readData():
-    data = pd.read_excel("data_nervous_genes.xlsx")
-    """count_by_disease = data.groupby('disease_id').size().reset_index(name='count')
-    sorted_by_count = count_by_disease.sort_values('count', ascending=False)
-
-    # print(sorted_by_count.head(5))
-
-    data = data.loc[data["disease_id"] == "C0002395"]
-
-    dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
-
-    data = data[~((data["disease_id"] == "C0002395") &
-                  (data["protein_id"].isin(dataB["protein_id"])))]"""
-    sequences = data["protein_sequence"]
-
-    return sequences
-
 def similitudProteinas(sequences):
     output = []
 
@@ -33,8 +16,8 @@ def similitudProteinas(sequences):
 
 def metrica_distanciaProteinas():
     # Leer los archivos CSV
-    data = pd.read_csv("C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv")
-    df_b = pd.read_csv("C0002395Disease_%Similitud.csv")
+    data = pd.read_csv("resultados/patronesIdenticos.csv")
+    df_b = pd.read_csv("AllProteins_%Similitud.csv")
 
     # Crear un diccionario de similaridades
     proteinas_dict = dict(zip(zip(df_b['Proteina1'], df_b['Proteina2']), df_b['Similaridad']))
@@ -60,36 +43,13 @@ def metrica_distanciaProteinas():
     df = pd.DataFrame(output, columns=['Patron', 'Proteina1', 'Proteina2', 'Similitud'])
 
     # Guardar el DataFrame en un archivo CSV
-    df.to_csv('Metrica_distanciaProteinasMismoPatron_C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv',
+    df.to_csv('resultados/Metrica_distanciaProteinasMismoPatron.csv',
               index=False)
-
-    """data = pd.read_csv("C0002395_Disease_patronesIdenticos_ocurrence20%_SinDescarte.csv").head(100)
-
-    df_b = pd.read_csv("C0002395Disease_%Similitud.csv")
-
-    proteinas_dict = df_b.set_index(['Proteina1', 'Proteina2'])['Similaridad'].to_dict()
-
-    # Agrupar por el patrón de proteína
-    output = []
-    grupos = data.groupby('Patron')
-
-    # Iterar sobre los grupos
-    for patron, grupo in grupos:
-        for index1, row1 in grupo.iterrows():
-            for index2, row2 in grupo.iterrows():
-                if index1 != index2 and not (row1 == row2).all():
-                    if (row1['Proteina'], row2["Proteina"]) in proteinas_dict:
-                        output.append([patron, row1["Proteina"], row2["Proteina"],
-                                       proteinas_dict[(row1['Proteina'], row2['Proteina'])]])
-
-    df = pd.DataFrame(output, columns=['Patron', 'Proteina1', 'Proteina2', 'Similitud'])
-    df.to_csv('Metrica_distanciaProteinasMismoPatron_C0002395_Disease_patronesIdenticos_ocurrence20%_SinDescarte.csv',
-              index=False)"""
 
 def patronesComun():
     # Leer el archivo CSV y cargar los datos en una lista de diccionarios
     registros = []
-    with open("C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv", 'r') as file:
+    with open("resultados/patronesIdenticos.csv", 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             registros.append(row)
@@ -119,7 +79,7 @@ def patronesComun():
                     pares_proteinas_procesados.add(par_proteinas)
     output = []
 
-    df_b = pd.read_csv("C0002395Disease_%Similitud.csv")
+    df_b = pd.read_csv("AllProteins_%Similitud.csv")
 
     proteinas_dict = df_b.set_index(['Proteina1', 'Proteina2'])['Similaridad'].to_dict()
 
@@ -140,7 +100,7 @@ def patronesComun():
                                proteinas_dict[(proteina1, proteina2)]])
 
     df = pd.DataFrame(output, columns=['Patrones', 'Proteina1', 'Proteina2', 'Similitud'])
-    df.to_csv('Metrica_patronesComunes10%_C0002395_Disease_patronesIdenticos_ocurrence20%_ConDescarte.csv',
+    df.to_csv('resultados/Metrica_patronesComunes.csv',
               index=False)
 
 def remplazar_sequence_for_ID(output):
@@ -165,20 +125,3 @@ def remplazar_sequence_for_ID(output):
     # Guardar el DataFrame actualizado en un archivo CSV
     df_a.to_csv('AllProteins_%Similitud.csv', index=False)
 
-
-if __name__ == "__main__":
-    inicio = time.time()
-    pattern_freqMin = dict()
-
-    #sequences = readData()
-    #similitud = similitudProteinas(sequences)
-    #remplazar_sequence_for_ID(similitud)
-    #patronesComun()
-    metrica_distanciaProteinas()
-    """output = patronesComun(data)
-    remplazar_sequence_for_ID(output)"""
-
-    fin = time.time()
-
-    tiempo_total = fin - inicio
-    print(tiempo_total, "segundos")

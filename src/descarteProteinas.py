@@ -9,20 +9,18 @@ from pyclustering.cluster.dbscan import dbscan
 from pyclustering.utils import timedcall
 from Levenshtein import distance
 
-def readData():
-    data = pd.read_excel("data_nervous_genes.xlsx")
-    count_by_disease = data.groupby('disease_id').size().reset_index(name='count')
-    sorted_by_count = count_by_disease.sort_values('count', ascending=False)
+def readData(archivoEntrada, enfermedad):
+    data = pd.read_excel(archivoEntrada)
 
-    # print(sorted_by_count.head(5))
+    if (enfermedad != ''):
+        data = data.loc[data["disease_id"] == enfermedad]
 
-    data = data.loc[data["disease_id"] == "C0002395"]
+        dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
 
-    dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
+        data = data[~((data["disease_id"] == enfermedad) &
+                      (data["protein_id"].isin(dataB["protein_id"])) &
+                      (data["gene_id"].isin(dataB["gene_id"])))]
 
-    data = data[~((data["disease_id"] == "C0002395") &
-                  (data["protein_id"].isin(dataB["protein_id"])) &
-                  (data["gene_id"].isin(dataB["gene_id"])))]
     sequences = data["protein_sequence"]
 
     return sequences
@@ -30,7 +28,7 @@ def readData():
 def levenshtein_similarity(pattern1, pattern2):
     return Levenshtein.distance(pattern1, pattern2) / max(len(pattern1), len(pattern2))
 
-def descarte(data):
+def descarte(data, threshold):
     # Datos de ejemplo
     data = data.tolist()
 
@@ -50,8 +48,6 @@ def descarte(data):
     dbscan_instance.process()
     clusters = dbscan_instance.get_clusters()
 
-    # Aplicar umbral de similitud del 90%
-    threshold = 0.9
     filtered_clusters = []
     discarded_data = []
 
@@ -91,7 +87,7 @@ def descarte(data):
     # Guardar los datos descartados en un archivo CSV utilizando Pandas
     if discarded_data:
         df = pd.DataFrame({'ProteinasDescartadas': discarded_data})
-        df.to_csv('C0002396Disease_proteinasDescartadas_umbral90%.csv', index=False)
+        df.to_csv('resultados/proteinasDescartadas.csv', index=False)
 
 
 def remplazar_sequence_for_ID(output):
@@ -106,15 +102,7 @@ def remplazar_sequence_for_ID(output):
 
     return output
 
-if __name__ == "__main__":
-    inicio = time.time()
-    pattern_freqMin = dict()
-    threshold = 0.9
+def ejecutar(archivoEntrada, enfermedad, similitud):
+    data = readData(archivoEntrada, enfermedad)
+    descarte(data, similitud)
 
-    data = readData()
-    descarte(data)
-
-    fin = time.time()
-
-    tiempo_total = fin - inicio
-    print(tiempo_total, "segundos")

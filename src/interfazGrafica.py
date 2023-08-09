@@ -25,7 +25,7 @@ def interfaz():
     input1 = tk.Entry(input_frame1)
     input1.pack(fill="both", padx=5, pady=5)
 
-    label2 = tk.Label(ventana, text="Nombre de la enfermedad para la cual se deseean obtener los patrones:", anchor="w")
+    label2 = tk.Label(ventana, text="Id de la enfermedad para la cual se deseean obtener los patrones:", anchor="w")
     label2.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
 
     input_frame2 = tk.Frame(ventana)
@@ -41,7 +41,7 @@ def interfaz():
     input3 = tk.Entry(input_frame3)
     input3.pack(fill="both", padx=5, pady=5)
 
-    label4 = tk.Label(ventana, text="% de ocurrencia mínima*:", anchor="w")
+    label4 = tk.Label(ventana, text="% de ocurrencia mínima (0-1)*:", anchor="w")
     label4.grid(row=4, column=0, sticky="nsew", padx=10, pady=10)
 
     input_frame4 = tk.Frame(ventana)
@@ -49,7 +49,7 @@ def interfaz():
     input4 = tk.Entry(input_frame4)
     input4.pack(fill="both", padx=5, pady=5)
 
-    label5 = tk.Label(ventana, text="% de similitud entre dos patrones para que se realice descarte*:", anchor="w")
+    label5 = tk.Label(ventana, text="% de similitud entre dos patrones para que se realice descarte (0-1)*:", anchor="w")
     label5.grid(row=5, column=0, sticky="nsew", padx=10, pady=10)
 
     input_frame5 = tk.Frame(ventana)
@@ -57,7 +57,7 @@ def interfaz():
     input5 = tk.Entry(input_frame5)
     input5.pack(fill="both", padx=5, pady=5)
 
-    boton = tk.Button(ventana, text="Obtener datos", command=lambda: obtener_datos(ventana, datos, input1, input2, input3))
+    boton = tk.Button(ventana, text="Obtener datos", command=lambda: obtener_datos(ventana, datos, input1, input2, input3, input4, input5))
     boton.grid(row=6, column=0, columnspan=2, padx=10, pady=10)
 
     ventana.mainloop()
@@ -67,7 +67,7 @@ def interfaz():
 def obtener_datos(ventana, datos, input1, input2, input3, input4, input5):
 
     datos["NombreArchivoEntrada"] = input1.get()
-    datos["NombreEnfermedad"] = input2.get()
+    datos["CodigoEnfermedad"] = input2.get()
     datos["NombreArchivoTarget"] = input3.get()
     datos["OcurrenciaMin"] = input4.get()
     datos["Similitud"] = input5.get()

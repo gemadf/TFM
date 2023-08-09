@@ -2,7 +2,7 @@ import time
 import Levenshtein
 import math
 
-def patrones_similares_prueba(pattern_freqMin):
+def patrones_similares(pattern_freqMin):
     similar_patterns = {}  # Guarda los patrones similares relacionados con el patron similar del que parten
     num_op = 3
     similar_patterns = {}  # Guarda los patrones similares relacionados con el patron similar del que parten
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     inicio = time.time()
 
     lista_similares = {'Al': {"ALFAS": [0], 'AFNERALDAL': [5, 7]}, 'AF': {"JDLKAJSDL": [8, 9, 10], "JLADA": [3, 7], "ALFAS": [6]}}
-    patrones_similares_prueba(lista_similares)
+    patrones_similares(lista_similares)
     fin = time.time()
 
     tiempo_total = fin - inicio
