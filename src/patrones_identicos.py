@@ -7,6 +7,7 @@ from interfazGrafica import interfaz
 from descarteProteinas import ejecutar
 import metricas
 from graficas import grafica
+import os
 
 def readData(archivoEntrada, enfermedad, archivoTarget):
     data = pd.read_excel(archivoEntrada)
@@ -14,16 +15,19 @@ def readData(archivoEntrada, enfermedad, archivoTarget):
 
     #Descarte de proteinas
     data = data[~data['protein_id'].isin(dataC['ProteinasDescartadas'])]
+    print("Se ha realizado el descarte de proteínas")
 
     # "C0002395"
     if(enfermedad != ''):
         data = data.loc[data["disease_id"] == enfermedad]
         dataB = pd.read_excel("proteinas_en_comun_Alzheimer.xlsx")
+        print("Se han seleccionado las proteínas de la enfermedad elegida")
 
     if(archivoTarget != ''):
         #Eliminar las proteinas target
         data = data[~((data["disease_id"] == enfermedad) &
                       (data["protein_id"].isin(dataB["protein_id"])))]
+        print("Se han descartado las proteínas del archivo target")
 
     sequences = data["protein_sequence"]
 
@@ -130,10 +134,9 @@ def buscar_patrones_identicos(sequences):
         dict_ordered_patterns = dict(sorted(pattern_freqMin.items(), key=lambda x: (-len(x[0]), x[0])))
 
         df = pd.DataFrame(dict_ordered_patterns.items(), columns=['pattern', 'proteins'])
+        num_patrones = df.shape[0]
 
-        df.to_csv('prueba.csv', index=False)
-
-    return pattern_freqMin
+    return pattern_freqMin, num_patrones
 
 def remplazar_sequence_for_ID(pattern_freqMin):
     df_b = pd.read_excel("data_nervous_genes.xlsx")
@@ -161,8 +164,17 @@ def remplazar_sequence_for_ID(pattern_freqMin):
 
     # Guardar el DataFrame actualizado en un archivo CSV
     df_a.to_csv('resultados/patronesIdenticos.csv', index=False)
+    print("Se ha generado el .csv con los patrones idénticos encontrados")
 
 if __name__ == "__main__":
+    if not os.path.exists("resultados"):
+        # Si no existe, crearla
+        os.makedirs("resultados")
+        print(f"La carpeta resultados se ha creado correctamente.")
+    else:
+        print(f"La carpeta resultados ya existe.")
+
+
     inicio = time.time()
 
     datosInterfaz = interfaz()
@@ -173,6 +185,7 @@ if __name__ == "__main__":
     archivoTarget = datosInterfaz["NombreArchivoTarget"]
     similitud = float(datosInterfaz["Similitud"])
 
+
     ejecutar(archivoEntrada, enfermedad, similitud)
     pattern_freqMin = dict()
 
@@ -180,21 +193,22 @@ if __name__ == "__main__":
 
     min_ocurrence = math.floor(num_filas * float(datosInterfaz["OcurrenciaMin"]))
 
-    pattern_freqMin = buscar_patrones_identicos(sequences)
+    pattern_freqMin, num_patrones = buscar_patrones_identicos(sequences)
     remplazar_sequence_for_ID(pattern_freqMin)
-    datosInterfaz = dict()
 
     metricas.metrica_distanciaProteinas()
     archivo = 'resultados/Metrica_distanciaProteinasMismoPatron.csv'
     nombreOutput = 'resultados/Figura_DistanciaProteinasMismoPatron'
     grafica(archivo, nombreOutput)
+    print("Se han obtenido los resultados de la métrica para la distancia entre dos proteínas que poseen el mismo patrón")
 
+    metrica = math.floor(num_patrones * float(datosInterfaz["Metrica"]))
 
-    metricas.patronesComun()
+    metricas.patronesComun(metrica)
     archivo = 'resultados/Metrica_patronesComunes.csv'
     nombreOutput = 'resultados/Figura_distanciaProteinasPatronesComunes'
     grafica(archivo, nombreOutput)
-
+    print("Se han obtenido los resultados de la métrica para la distancia entre dos proteínas que poseen mas de un patrón en común")
 
     fin = time.time()
 

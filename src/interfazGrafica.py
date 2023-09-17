@@ -5,7 +5,7 @@ def interfaz():
     datos = dict()
 
     ventana = tk.Tk()
-    ventana.geometry("800x500")
+    ventana.geometry("900x500")
 
     ventana.grid_rowconfigure(0, weight=1)
     ventana.grid_rowconfigure(1, weight=1)
@@ -57,20 +57,29 @@ def interfaz():
     input5 = tk.Entry(input_frame5)
     input5.pack(fill="both", padx=5, pady=5)
 
-    boton = tk.Button(ventana, text="Obtener datos", command=lambda: obtener_datos(ventana, datos, input1, input2, input3, input4, input5))
-    boton.grid(row=6, column=0, columnspan=2, padx=10, pady=10)
+    label6 = tk.Label(ventana, text="% de patrones en común sobre los patrones totales, que deben tener dos proteínas para considerarse en la métrica (0-1)*:", anchor="w")
+    label6.grid(row=6, column=0, sticky="nsew", padx=10, pady=10)
+
+    input_frame6 = tk.Frame(ventana)
+    input_frame6.grid(row=6, column=1, sticky="nsew", padx=10, pady=10)
+    input6 = tk.Entry(input_frame6)
+    input6.pack(fill="both", padx=5, pady=5)
+
+    boton = tk.Button(ventana, text="Obtener datos", command=lambda: obtener_datos(ventana, datos, input1, input2, input3, input4, input5, input6))
+    boton.grid(row=7, column=0, columnspan=2, padx=10, pady=10)
 
     ventana.mainloop()
 
     return datos
 
-def obtener_datos(ventana, datos, input1, input2, input3, input4, input5):
+def obtener_datos(ventana, datos, input1, input2, input3, input4, input5, input6):
 
     datos["NombreArchivoEntrada"] = input1.get()
     datos["CodigoEnfermedad"] = input2.get()
     datos["NombreArchivoTarget"] = input3.get()
     datos["OcurrenciaMin"] = input4.get()
     datos["Similitud"] = input5.get()
+    datos["Metrica"] = input6.get()
 
     ventana.destroy()
 

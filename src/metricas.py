@@ -46,7 +46,7 @@ def metrica_distanciaProteinas():
     df.to_csv('resultados/Metrica_distanciaProteinasMismoPatron.csv',
               index=False)
 
-def patronesComun():
+def patronesComun(patronesComun):
     # Leer el archivo CSV y cargar los datos en una lista de diccionarios
     registros = []
     with open("resultados/patronesIdenticos.csv", 'r') as file:
@@ -73,7 +73,7 @@ def patronesComun():
         for proteina2, patrones2 in patrones_por_proteina.items():
             if proteina1 != proteina2 and (proteina2, proteina1) not in pares_proteinas_procesados:
                 patrones_comunes = patrones1.intersection(patrones2)
-                if len(patrones_comunes) >= 96:
+                if len(patrones_comunes) >= patronesComun:
                     par_proteinas = (proteina1, proteina2)
                     proteinas_comunes[par_proteinas] = patrones_comunes
                     pares_proteinas_procesados.add(par_proteinas)
